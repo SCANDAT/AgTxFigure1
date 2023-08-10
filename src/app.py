@@ -5,13 +5,11 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 
+from config import predictor_dict, label_dict
+from functions import format_pvalue
+
 df = pd.read_csv('./data/plotdata24.csv')
 pvals = pd.read_csv('./data/fdr24.csv')
-
-#df.head()
-
-predictor_dict = {'donorparity': 'Donor parity','idbloodgroupcat': 'ABO identical transfusion','meandonationtime': 'Time of donation','meandonorage': 'Age of Donor','meandonorhb': 'Donor Hb','meandonorsex': 'Donor sex','meanstoragetime': 'Storage time (days)','meanweekday': 'Weekday of donation','numdoncat': 'Donors prior number of donations','timesincecat': 'Time since donors previous donation'}
-label_dict = {'ALAT': 'ALT','ALB': 'Albumin','ALP': 'ALP','APTT': 'aPTT','ASAT': 'AST','BASOF': 'Basophiles','BE': 'Base Excess','BILI': 'Bilirubin','EVF':'EVF', 'BILI_K': 'Conjugated bilirubin','BLAST': 'Blast cells','CA': 'Calcium','CA_F': 'Free Calcium','CL': 'Chloride','CO2': 'Carbon Dioxide','COHB': 'CO-Hb','CRP': 'CRP','EGFR': 'eGFR','EOSINO': 'Eosinophile count','ERYTRO': 'Erythrocyte count','ERYTROBL': 'Erythroblasts','FE': 'Iron','FERRITIN': 'Ferritin','FIB': 'Fibrinogen','GLUKOS': 'Glucose','GT': 'Glutamyl transferase','HAPTO': 'Haptoglobin','HB': 'Hemoglobin','HBA1C': 'HbA1c','HCT': 'Hematocrit','INR': 'INR','K': 'Potassium','KREA': 'Creatinine','LAKTAT': 'Lactate','LD': 'Lactate dehydrogenase','LPK': 'Leukocyte count','LYMF': 'Lymphocyte count','MCH': 'Mean corpuscular  hemoglobin','MCHC': 'Mean corpuscular  hemoglobin concentration','MCV': 'Mean corpuscular volume','META': 'Metamyelocyte count','METHB': 'Methemoglobin','MONO': 'Monocyte count','MYELO': 'Myelocyte count','NA': 'Sodium','NEUTRO': 'Neutrophile count','NTPROBNP': 'NT-ProBNP','OSMO': 'Osmolality','PCO2': 'PaCO2','PH': 'pH','PO2': 'PaO2','RET': 'Reticulocyte count','STDBIK': 'Standard bicarbonate','TPK': 'Platelet count','TRI': 'Triglycerides','TROP_I': 'Troponin I','TROP_T': 'Troponin T'}
 
 df=df.dropna()
 
@@ -21,26 +19,63 @@ server = app.server
 app.layout = html.Div([
     dcc.Dropdown(
         id="label-dropdown",
-        options=[{"label": label_dict[x], "value": x} for x in df['label'].unique()],
+        options=[{"label": label_dict[x], "value": x} for x in df.iloc[df['label'].map(label_dict).argsort()]['label'].unique()],
         value='HB',
         clearable=False,
     ),
     dcc.Dropdown(
         id="predictor-dropdown",
-        options=[{"label": predictor_dict[x], "value": x} for x in df['predictor'].unique()],
+        options=[{"label": predictor_dict[x], "value": x} for x in df.iloc[df['predictor'].map(predictor_dict).argsort()]['predictor'].unique()],
         value='meandonorhb',
         clearable=False,
     ),
+    dcc.Checklist(
+        id="adjustment-checklist",
+        options=[{'label': "Adjusted for donor hemoglobin", 'value': 'adjusted'}],
+        value=[]
+    ),
     dcc.Graph(id="line-graph"),
 ], style={'padding': '20px'})
+
 @app.callback(
     Output("line-graph", "figure"),
-    [Input("label-dropdown", "value"), Input("predictor-dropdown", "value")]
+    [Input("label-dropdown", "value"), 
+    Input("predictor-dropdown", "value"),
+    Input("adjustment-checklist", "value")]
 )
-def update_graph(selected_label, selected_predictor):
+def update_graph(selected_label, selected_predictor, adjustment_values):
     dff = df[(df['label'] == selected_label) & (df['predictor'] == selected_predictor)]
-    current_fpval = float(pvals[(pvals['label'] == selected_label) & (pvals['predictor'] == selected_predictor)]['ProbF'].iloc[0])
-    current_fdrp = float(pvals[(pvals['label'] == selected_label) & (pvals['predictor'] == selected_predictor)]['fdr_p'].iloc[0])
+    filtered_pvals = pvals[(pvals['label'] == selected_label) & (pvals['predictor'] == selected_predictor)]
+    if 'adjusted' in adjustment_values:
+        dff = dff[dff['adjusted'] == 1]
+    else:
+        dff = dff[dff['adjusted'] == 0]
+    if dff.empty | filtered_pvals.empty:
+        return {
+            'data': [],
+            'layout': {
+                'title': 'Combination not possible',
+                'xaxis': {
+                    'visible': False
+                },
+                'yaxis': {
+                    'visible': False
+                },
+                'annotations': [
+                    {
+                        'text': 'No data available for the selected combination',
+                        'xref': 'paper',
+                        'yref': 'paper',
+                        'showarrow': False,
+                        'font': {
+                            'size': 20
+                        }
+                    }
+                ]
+            }
+        }
+    current_fpval = float(filtered_pvals['ProbF'].iloc[0])
+    current_fdrp = float(filtered_pvals['fdr_p'].iloc[0])
     # Create a trace for a dot plot with error bars
     trace = go.Scatter(
         x=dff['predictorvalue'],
@@ -82,23 +117,43 @@ def update_graph(selected_label, selected_predictor):
         line=dict(width=0),
         fillcolor='rgba(68, 68, 68, 0.3)',
         fill='tonexty'
-)
-    if selected_predictor in ['donorparity', 'idbloodgroupcat', 'meandonorsex', 'meanweekday', 'numdoncat', 'timesincecat']:
+    )
+    
+    title_template = ("Association between {predictor} and Δ{label}: Raw p={raw_p}, FDR-p={fdr_p}")
+    formatted_title = title_template.format(
+        predictor=predictor_dict[selected_predictor],
+        label=label_dict[selected_label],
+        raw_p=format_pvalue(current_fpval),
+        fdr_p=format_pvalue(current_fdrp)
+    )
+    xaxislabel=predictor_dict[selected_predictor]
+    yaxislabel="Delta %s (95%% CI)" % label_dict[selected_label]
+
+    if selected_predictor in ['donorparity', 'idbloodgroupcat', 'meandonorsex', 'meanweekday', 'numdoncat']:
         # No fill for error bars plots
         data = [trace]
         layout = go.Layout(
-            yaxis=dict(title="Delta %s (95%% CI)" % label_dict[selected_label]),
-            xaxis=dict(title=predictor_dict[selected_predictor], dtick=1), # Adding dtick=1 forces integer ticks
-            title="Association between %s and delta %s Raw p=%s, FDR-p=%s" % (predictor_dict[selected_predictor], label_dict[selected_label], np.format_float_scientific(current_fpval,precision=2),np.format_float_scientific(current_fdrp,precision=2)),
+            yaxis=dict(title=yaxislabel),
+            xaxis=dict(title=xaxislabel, dtick=1), # Adding dtick=1 forces integer ticks
+            title=formatted_title,
+            showlegend = False
+        )
+    elif selected_predictor == 'timesincecat':
+        # No fill for error bars plots
+        data = [trace]
+        layout = go.Layout(
+            yaxis=dict(title=yaxislabel),
+            xaxis=dict(title=xaxislabel, tickvals=list(range(0, 1000, 100))), # Adding dtick=1 forces integer ticks
+            title=formatted_title,
             showlegend = False
         )
     else:
         # Create a trace for the confidence band
         data = [upper_band, lower_band, line_trace]
         layout = go.Layout(
-            yaxis=dict(title="Delta %s (95%% CI)" % label_dict[selected_label]),
-            xaxis=dict(title=predictor_dict[selected_predictor]),
-            title="Association between %s and delta %s Raw p=%s, FDR-p=%s" % (predictor_dict[selected_predictor], label_dict[selected_label], np.format_float_scientific(current_fpval,precision=2),np.format_float_scientific(current_fdrp,precision=2)),
+            yaxis=dict(title=yaxislabel),
+            xaxis=dict(title=xaxislabel),
+            title=formatted_title,
             showlegend = False
         )
     layout.update(height=800, width=1100)
