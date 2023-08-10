@@ -3,6 +3,7 @@ from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 import pandas as pd
 import plotly.express as px
+import numpy as np
 
 df = pd.read_csv('./data/plotdata24.csv')
 pvals = pd.read_csv('./data/fdr24.csv')
