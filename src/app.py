@@ -4,8 +4,8 @@ import plotly.graph_objs as go
 import pandas as pd
 import plotly.express as px
 
-df = pd.read_csv('src/data/plotdata24.csv')
-pvals = pd.read_csv('src/data/fdr24.csv')
+df = pd.read_csv('./data/plotdata24.csv')
+pvals = pd.read_csv('./data/fdr24.csv')
 
 #df.head()
 
