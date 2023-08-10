@@ -38,6 +38,8 @@ app.layout = html.Div([
 )
 def update_graph(selected_label, selected_predictor):
     dff = df[(df['label'] == selected_label) & (df['predictor'] == selected_predictor)]
+    current_fpval = float(pvals[(pvals['label'] == selected_label) & (pvals['predictor'] == selected_predictor)]['ProbF'].iloc[0])
+    current_fdrp = float(pvals[(pvals['label'] == selected_label) & (pvals['predictor'] == selected_predictor)]['fdr_p'].iloc[0])
     # Create a trace for a dot plot with error bars
     trace = go.Scatter(
         x=dff['predictorvalue'],
@@ -86,7 +88,7 @@ def update_graph(selected_label, selected_predictor):
         layout = go.Layout(
             yaxis=dict(title="Delta %s (95%% CI)" % label_dict[selected_label]),
             xaxis=dict(title=predictor_dict[selected_predictor], dtick=1), # Adding dtick=1 forces integer ticks
-            title="Association between %s and patient %s" % (predictor_dict[selected_predictor], label_dict[selected_label]),
+            title="Association between %s and Patient delta %s" % (predictor_dict[selected_predictor], label_dict[selected_label]),
             showlegend = False
         )
     else:
@@ -95,12 +97,21 @@ def update_graph(selected_label, selected_predictor):
         layout = go.Layout(
             yaxis=dict(title="Delta %s (95%% CI)" % label_dict[selected_label]),
             xaxis=dict(title=predictor_dict[selected_predictor]),
-            title="Association between %s and patient %s" % (predictor_dict[selected_predictor], label_dict[selected_label]),
+            title="Association between %s and Patient delta %s" % (predictor_dict[selected_predictor], label_dict[selected_label]),
             showlegend = False
         )
     layout.update(height=600, width=800)
     layout.template = "ggplot2"
     fig = go.Figure(data=data, layout=layout)
+    fig.add_annotation(
+        showarrow=False,
+        text='Raw p-value = %s, FDR-adjusted p-value = %s' % (np.format_float_scientific(current_fpval,precision=2),np.format_float_scientific(current_fdrp,precision=2)),
+        font=dict(size=10), 
+        xref='x domain',
+        x=0.5,
+        yref='y domain',
+        y=-0.5
+        )
     return fig
 if __name__ == "__main__":
     app.run_server(debug=True)
