@@ -89,7 +89,7 @@ def update_graph(selected_label, selected_predictor):
         layout = go.Layout(
             yaxis=dict(title="Delta %s (95%% CI)" % label_dict[selected_label]),
             xaxis=dict(title=predictor_dict[selected_predictor], dtick=1), # Adding dtick=1 forces integer ticks
-            title="Association between %s and delta %s Raw p-value = %s, FDR-adjusted p-value = %s" % (predictor_dict[selected_predictor], label_dict[selected_label], np.format_float_scientific(current_fpval,precision=2),np.format_float_scientific(current_fdrp,precision=2)),
+            title="Association between %s and delta %s Raw p=%s, FDR-p=%s" % (predictor_dict[selected_predictor], label_dict[selected_label], np.format_float_scientific(current_fpval,precision=2),np.format_float_scientific(current_fdrp,precision=2)),
             showlegend = False
         )
     else:
@@ -98,10 +98,10 @@ def update_graph(selected_label, selected_predictor):
         layout = go.Layout(
             yaxis=dict(title="Delta %s (95%% CI)" % label_dict[selected_label]),
             xaxis=dict(title=predictor_dict[selected_predictor]),
-            title="Association between %s and delta %s Raw p-value = %s, FDR-adjusted p-value = %s" % (predictor_dict[selected_predictor], label_dict[selected_label], np.format_float_scientific(current_fpval,precision=2),np.format_float_scientific(current_fdrp,precision=2)),
+            title="Association between %s and delta %s Raw p=%s, FDR-p=%s" % (predictor_dict[selected_predictor], label_dict[selected_label], np.format_float_scientific(current_fpval,precision=2),np.format_float_scientific(current_fdrp,precision=2)),
             showlegend = False
         )
-    layout.update(height=600, width=800)
+    layout.update(height=800, width=1100)
     layout.template = "ggplot2"
     fig = go.Figure(data=data, layout=layout)
     return fig
