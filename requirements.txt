@@ -4,3 +4,4 @@ plotly==5.15.0
 numpy==1.25.2
 gunicorn
 dash-tools
+dash-bootstrap-components
