@@ -15,7 +15,7 @@ pvals = pd.read_csv('./data/fdr24.csv')
 df=df.dropna()
 
 #app = dash.Dash(__name__)
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SPACELAB])
 
 server = app.server
 
