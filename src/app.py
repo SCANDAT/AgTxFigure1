@@ -144,7 +144,7 @@ def update_graph(selected_label, selected_predictor, adjustment_values):
     xaxislabel=predictor_dict[selected_predictor]
     yaxislabel="Delta %s (95%% CI)" % label_dict[selected_label]
 
-    if selected_predictor in ['donorparity', 'idbloodgroupcat', 'meandonorsex', 'meanweekday', 'numdoncat']:
+    if selected_predictor in ['donorparity', 'idbloodgroupcat', 'meandonorsex', 'meanweekday', 'numdoncat', 'foreigndonor']:
         # No fill for error bars plots
         data = [trace]
         layout = go.Layout(
