@@ -9,7 +9,8 @@ predictor_dict = {
     'meanstoragetime': 'Storage time (days)',
     'meanweekday': 'Weekday of donation',
     'numdoncat': 'Donors prior number of donations',
-    'timesincecat': 'Time since donors previous donation (days)'
+    'timesincecat': 'Time since donors previous donation (days)',
+    'foreigndonor': 'Donor born outside of Sweden'
 }
 label_dict = {
     'ALAT': 'ALT (U/L)',
