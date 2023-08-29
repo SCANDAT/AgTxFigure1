@@ -42,7 +42,7 @@ label_dict = {
     'HAPTO': 'Haptoglobin (g/L)',
     'HB': 'Hemoglobin (g/L)',
     'HBA1C': 'HbA1c (mmol/L)',
-    'HCT': 'Hematocrit',
+    'EVF': 'Hematocrit',
     'INR': 'INR',
     'K': 'Potassium (mmol/L)',
     'KREA': 'Creatinine (µmol/L)',
